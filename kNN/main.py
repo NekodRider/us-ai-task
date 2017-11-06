@@ -3,15 +3,24 @@ import numpy as np
 import csv
 
 
-def proc_data(raw_data):
+def proc_data(raw_train_data,raw_test_data):
     # raw_data['Cabin'] = raw_data['Cabin'].fillna('@')
     # raw_data['Cabin'] = raw_data['Cabin'].map(lambda x: ord(x[0])-ord('A'))
-    raw_data=raw_data.assign(Relative=((1-raw_data['SibSp'] - raw_data['Parch'])**2))
-    data = raw_data.ix[:, ['Pclass', 'Sex', 'Age', 'Fare','SibSp','Parch']]
-    data = data.fillna(data.mean()['Age'])
-    data['Sex'] = data['Sex'].map(sexDict)
+    raw_train_data=raw_train_data.assign(Relative=((1-raw_train_data['SibSp'] - raw_train_data['Parch'])**2))
+    raw_test_data = raw_test_data.assign(Relative=((1 - raw_test_data['SibSp'] - raw_test_data['Parch']) ** 2))
+    train_data = raw_train_data.ix[:, ['Pclass', 'Sex', 'Age', 'SibSp','Parch']]
+    test_data = raw_test_data.ix[:, ['Pclass', 'Sex', 'Age',  'SibSp', 'Parch']]
+
+    data_mean=(raw_test_data.mean()['Age']*raw_test_data.size+raw_train_data.mean()['Age']*raw_train_data.size)/(raw_test_data.size+raw_train_data.size)
+    print(data_mean)
+    train_data = train_data.fillna({'Age':data_mean })
+    test_data = test_data.fillna({'Age': data_mean})
+
+
+    train_data['Sex'] = train_data['Sex'].map(sexDict)
+    test_data['Sex'] = test_data['Sex'].map(sexDict)
     # data['Embarked'] = data['Embarked'].map(embarkedDict)
-    return data
+    return train_data,test_data
 
 
 def save_result(idList,output):
@@ -72,10 +81,9 @@ rawTrainData = pd.DataFrame(pd.read_csv('train.csv'))
 rawTestData = pd.DataFrame(pd.read_csv('test.csv'))
 labels = rawTrainData.ix[:, 'Survived']
 idList = np.array(rawTestData.ix[:, 'PassengerId'])
-trainData=proc_data(rawTrainData)
-testData=proc_data(rawTestData)
+trainData,testData=proc_data(rawTrainData,rawTestData)
 print(trainData,labels)
 
-output = predict_array(testData,trainData,labels,10)
+output = predict_array(testData,trainData,labels,5)
 
 save_result(idList,output)
